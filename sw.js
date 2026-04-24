@@ -1,4 +1,4 @@
-const CACHE = 'amber-gym-v2';
+const CACHE = 'amber-gym-v3';
 const ASSETS = ['./gym_planner.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -15,8 +15,15 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// 網路優先：有網路就抓最新版，同時更新快取；離線才用快取
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
