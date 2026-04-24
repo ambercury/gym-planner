@@ -11,6 +11,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="健康日記" />
   <link rel="apple-touch-icon" href="icon.svg" />
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <style>
     :root {
       --bg:#0f1117; --card:#1a1d27; --card2:#22263a;
@@ -258,6 +261,14 @@
     @media(display-mode:standalone){
       body{padding-top:env(safe-area-inset-top);}
     }
+
+    /* ── Auth ── */
+    .auth-sign-btn{background:var(--card2);border:1px solid var(--border);color:var(--text);
+      border-radius:7px;padding:5px 10px;font-size:.78rem;cursor:pointer;font-family:inherit;
+      white-space:nowrap;transition:border-color .2s;}
+    .auth-sign-btn:hover{border-color:var(--accent);}
+    #signedInArea{display:flex;align-items:center;gap:6px;}
+    #signedInArea.hidden,#signInBtn.hidden{display:none;}
   </style>
 </head>
 <body>
@@ -265,6 +276,13 @@
 <header>
   <span class="logo" id="headerLogo" onclick="switchTab('profile')" title="個人檔案"></span>
   <h1>Amber的<span>變健康日記</span></h1>
+  <div>
+    <button id="signInBtn" class="auth-sign-btn" onclick="doSignIn()">🔑 登入同步</button>
+    <div id="signedInArea" class="hidden">
+      <span id="syncStatus" style="font-size:.7rem;color:var(--green);">☁</span>
+      <button class="auth-sign-btn" style="font-size:.72rem;padding:4px 8px;" onclick="doSignOut()">登出</button>
+    </div>
+  </div>
 </header>
 
 <div class="tab-nav">
@@ -512,6 +530,86 @@ const DOG_SVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <line x1="100" y1="145" x2="100" y2="167" stroke="#c03050" stroke-width="3" stroke-linecap="round"/>
 </svg>`;
 
+// ── Firebase ───────────────────────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey: "AIzaSyDj_f_amBZmeW6z38dzoZDbOBTZAeRFZ7E",
+  authDomain: "amber-gym.firebaseapp.com",
+  projectId: "amber-gym",
+  storageBucket: "amber-gym.firebasestorage.app",
+  messagingSenderId: "881660034937",
+  appId: "1:881660034937:web:a03baf24b433b79f2cb9a8"
+});
+const auth = firebase.auth();
+const db   = firebase.firestore();
+let currentUid     = null;
+let unsubSnapshot  = null;
+let cloudSaveTimer = null;
+
+function gymDocRef() {
+  return db.collection('users').doc(currentUid).collection('data').doc('gym');
+}
+async function saveToCloud() {
+  if (!currentUid) return;
+  const el = document.getElementById('syncStatus');
+  try {
+    await gymDocRef().set({ workouts, presets, daily, profile,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    if (el) { el.textContent='☁ 已同步'; el.style.color='var(--green)'; }
+  } catch(e) {
+    if (el) { el.textContent='⚠ 失敗'; el.style.color='var(--red)'; }
+  }
+}
+function subscribeCloud() {
+  if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot=null; }
+  unsubSnapshot = gymDocRef().onSnapshot(snap => {
+    if (snap.metadata.hasPendingWrites) return;
+    if (!snap.exists) { saveToCloud(); return; }
+    const d = snap.data();
+    workouts = d.workouts || {};
+    presets  = d.presets  || clone(DEFAULTS);
+    daily    = d.daily    || {};
+    profile  = Object.assign({ avatar:'🐰', nickname:'', height:null, weight:null,
+      bodyFat:null, targetWeight:null, targetBodyFat:null, initWeight:null, initBodyFat:null },
+      d.profile || {});
+    localStorage.setItem('amberGym2', JSON.stringify({ workouts, presets, daily, profile }));
+    const focused = document.activeElement;
+    if (!focused || !focused.classList.contains('water-ml-inp')) renderWeek();
+    const active = document.querySelector('.tab-btn.active')?.id?.replace('tabBtn-','');
+    if (active==='pr')      renderPR();
+    if (active==='preset')  renderPresets();
+    if (active==='profile') renderProfile();
+    const el = document.getElementById('syncStatus');
+    if (el) { el.textContent='☁ 已同步'; el.style.color='var(--green)'; }
+  }, () => {
+    const el = document.getElementById('syncStatus');
+    if (el) { el.textContent='⚠ 同步錯誤'; el.style.color='var(--red)'; }
+  });
+}
+function doSignIn() {
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+    .catch(e => alert('登入失敗：' + e.message));
+}
+function doSignOut() {
+  if (!confirm('確定登出？登出後資料不會同步。')) return;
+  if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot=null; }
+  auth.signOut();
+}
+auth.onAuthStateChanged(user => {
+  const signInBtn    = document.getElementById('signInBtn');
+  const signedInArea = document.getElementById('signedInArea');
+  if (user) {
+    currentUid = user.uid;
+    signInBtn.classList.add('hidden');
+    signedInArea.classList.remove('hidden');
+    document.getElementById('syncStatus').textContent = '☁ 載入中…';
+    subscribeCloud();
+  } else {
+    currentUid = null;
+    signInBtn.classList.remove('hidden');
+    signedInArea.classList.add('hidden');
+  }
+});
+
 // ── State ──────────────────────────────────────────────────────────────────
 let workouts = {};
 let presets  = [];
@@ -541,7 +639,15 @@ function loadData() {
     }
   } catch { presets = clone(DEFAULTS); }
 }
-function persist() { localStorage.setItem('amberGym2', JSON.stringify({ workouts, presets, daily, profile })); }
+function persist() {
+  localStorage.setItem('amberGym2', JSON.stringify({ workouts, presets, daily, profile }));
+  if (currentUid) {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(saveToCloud, 1500);
+    const el = document.getElementById('syncStatus');
+    if (el) { el.textContent='☁ 同步中…'; el.style.color='var(--muted)'; }
+  }
+}
 function clone(x)  { return JSON.parse(JSON.stringify(x)); }
 
 // ── Date helpers ───────────────────────────────────────────────────────────
