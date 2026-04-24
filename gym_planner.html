@@ -2,8 +2,15 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Amber的變健康日記</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#f97316" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="健康日記" />
+  <link rel="apple-touch-icon" href="icon.svg" />
   <style>
     :root {
       --bg:#0f1117; --card:#1a1d27; --card2:#22263a;
@@ -233,6 +240,26 @@
     ::-webkit-scrollbar-track{background:var(--bg);}
     ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
     @media(max-width:700px){.week-grid{grid-template-columns:repeat(7,155px);}}
+
+    /* ── PWA install banner ── */
+    .install-banner{position:fixed;bottom:0;left:0;right:0;z-index:300;
+      background:var(--card);border-top:1px solid var(--border);
+      padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+      animation:slideUp .35s ease;}
+    .install-banner.hidden{display:none;}
+    @keyframes slideUp{from{transform:translateY(100%);}}
+    .install-inner{display:flex;align-items:center;gap:12px;}
+    .install-icon{width:44px;height:44px;border-radius:10px;flex-shrink:0;}
+    .install-text{flex:1;}
+    .install-title{font-size:.9rem;font-weight:700;}
+    .install-desc{font-size:.76rem;color:var(--muted);margin-top:3px;line-height:1.5;}
+    .install-close{background:var(--card2);border:1px solid var(--border);color:var(--muted);
+      border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.8rem;flex-shrink:0;}
+    .install-close:hover{color:var(--text);}
+    /* Safe area padding for standalone mode */
+    @media(display-mode:standalone){
+      body{padding-top:env(safe-area-inset-top);}
+    }
   </style>
 </head>
 <body>
@@ -381,6 +408,18 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══════ PWA Install Banner ══════ -->
+<div class="install-banner hidden" id="installBanner">
+  <div class="install-inner">
+    <img class="install-icon" src="icon.svg" alt="icon" />
+    <div class="install-text">
+      <div class="install-title">加入主畫面，當作 App 使用 📲</div>
+      <div class="install-desc">點下方 <b>分享</b> 按鈕 → 選 <b>加入主畫面</b></div>
+    </div>
+    <button class="install-close" onclick="dismissInstall()">✕</button>
   </div>
 </div>
 
@@ -872,6 +911,27 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 loadData();
 renderWeek();
 document.getElementById('headerLogo').innerHTML = DOG_SVG.replace('<svg ', '<svg width="34" height="34" ');
+
+// ── PWA ────────────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () =>
+    navigator.serviceWorker.register('./sw.js').catch(() => {})
+  );
+}
+
+function showInstallBanner() {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode:standalone)').matches;
+  const dismissed = localStorage.getItem('pwaInstallDismissed');
+  if (isIOS && !isStandalone && !dismissed) {
+    setTimeout(() => document.getElementById('installBanner').classList.remove('hidden'), 2500);
+  }
+}
+function dismissInstall() {
+  document.getElementById('installBanner').classList.add('hidden');
+  localStorage.setItem('pwaInstallDismissed', '1');
+}
+showInstallBanner();
 </script>
 </body>
 </html>

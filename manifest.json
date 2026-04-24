@@ -1,0 +1,14 @@
+{
+  "name": "Amber的變健康日記",
+  "short_name": "健康日記",
+  "description": "個人健身記錄、BMI追蹤、喝水紀錄",
+  "start_url": "./gym_planner.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1117",
+  "theme_color": "#f97316",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
