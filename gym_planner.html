@@ -78,15 +78,13 @@
     .hydration-sec{border-top:1px solid var(--border);padding:7px 8px 6px;margin-top:2px;}
     .water-row{display:flex;align-items:center;gap:4px;margin-bottom:5px;}
     .water-emoji{font-size:0.9rem;}
-    .hyd-btn{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);
-      background:var(--card2);color:var(--text);cursor:pointer;font-size:0.78rem;
-      display:flex;align-items:center;justify-content:center;transition:all .2s;line-height:1;}
-    .hyd-btn:hover{border-color:var(--blue);color:var(--blue);}
-    .water-num{font-size:0.88rem;font-weight:700;min-width:14px;text-align:center;color:var(--blue);}
+    .water-ml-inp{width:54px;background:var(--card);border:1px solid var(--border);
+      color:var(--blue);border-radius:6px;padding:3px 5px;font-size:0.82rem;font-weight:700;
+      text-align:center;outline:none;font-family:inherit;transition:border-color .2s;}
+    .water-ml-inp:focus{border-color:var(--blue);}
     .water-lbl{font-size:0.7rem;color:var(--muted);}
-    .water-dots{display:flex;gap:2px;flex-wrap:wrap;margin-left:2px;}
-    .water-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background .2s;}
-    .water-dot.filled{background:var(--blue);}
+    .water-goal{font-size:0.68rem;color:var(--muted);margin-left:1px;}
+    .water-goal.reached{color:var(--blue);font-weight:600;}
     .bubble-row{display:flex;align-items:center;gap:5px;}
     .bubble-toggle{background:var(--card2);border:1px solid var(--border);border-radius:20px;
       padding:3px 9px;font-size:0.72rem;cursor:pointer;font-family:inherit;color:var(--muted);
@@ -593,9 +591,7 @@ function renderWeek() {
     const col= document.createElement('div');
     col.className = 'day-col'+(isT?' today':'');
     const entries = arr.map(e=>entryHtml(e,ds)).join('');
-    // Water dots (max 8 shown)
-    const dots = Array.from({length:8},(_,i)=>
-      `<div class="water-dot${i<dy.water?' filled':''}"></div>`).join('');
+    const ml = dy.water || 0;
     const bubCls = dy.bubbleTea===null||dy.bubbleTea===undefined ? '' :
                    dy.bubbleTea ? 'drank' : 'nodrank';
     const bubTxt = dy.bubbleTea===null||dy.bubbleTea===undefined ? '🧋 手搖飲？' :
@@ -614,11 +610,12 @@ function renderWeek() {
       <div class="hydration-sec">
         <div class="water-row">
           <span class="water-emoji">💧</span>
-          <button class="hyd-btn" onclick="adjWater('${ds}',-1)">−</button>
-          <span class="water-num">${dy.water||0}</span>
-          <span class="water-lbl">杯</span>
-          <button class="hyd-btn" onclick="adjWater('${ds}',1)">+</button>
-          <div class="water-dots">${dots}</div>
+          <input class="water-ml-inp" type="number" min="0" max="9999"
+            value="${ml||''}" placeholder="0"
+            oninput="setWater('${ds}',this.value)"
+            onclick="this.select()" />
+          <span class="water-lbl">ml</span>
+          <span class="water-goal${ml>=2000?' reached':''}" id="wg-${ds}">${ml>=2000?'✓ 達標':'/ 2000'}</span>
         </div>
         <div class="bubble-row">
           <button class="bubble-toggle ${bubCls}" onclick="togBubble('${ds}')">${bubTxt}</button>
@@ -641,10 +638,16 @@ function entryHtml(e,ds) {
 }
 
 // ── Hydration ──────────────────────────────────────────────────────────────
-function adjWater(ds,delta) {
-  if (!daily[ds]) daily[ds]={water:0,bubbleTea:null};
-  daily[ds].water = Math.max(0,(daily[ds].water||0)+delta);
-  persist(); renderWeek();
+function setWater(ds, val) {
+  const ml = Math.max(0, parseInt(val) || 0);
+  if (!daily[ds]) daily[ds] = { water: 0, bubbleTea: null };
+  daily[ds].water = ml;
+  persist();
+  const badge = document.getElementById('wg-' + ds);
+  if (badge) {
+    badge.textContent = ml >= 2000 ? '✓ 達標' : '/ 2000';
+    badge.className = 'water-goal' + (ml >= 2000 ? ' reached' : '');
+  }
 }
 function togBubble(ds) {
   if (!daily[ds]) daily[ds]={water:0,bubbleTea:null};
