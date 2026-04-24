@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amber的變健康日記</title>
+  <style>
+    :root {
+      --bg:#0f1117; --card:#1a1d27; --card2:#22263a;
+      --accent:#f97316; --accent2:#6366f1;
+      --green:#22c55e; --red:#ef4444; --blue:#60a5fa; --yellow:#eab308;
+      --text:#e2e8f0; --muted:#94a3b8; --border:#2e3347;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+
+    /* ── Header ── */
+    header{background:linear-gradient(135deg,#1a1d27,#12152a);border-bottom:1px solid var(--border);
+      padding:16px 22px;display:flex;align-items:center;gap:10px;}
+    header .logo{cursor:pointer;transition:transform .2s;user-select:none;display:flex;align-items:center;}
+    header .logo:hover{transform:scale(1.12);}
+    header .logo svg{width:34px;height:34px;display:block;}
+    header h1{font-size:1.3rem;font-weight:700;flex:1;}
+    header h1 span{color:var(--accent);}
+
+    /* ── Tabs ── */
+    .tab-nav{display:flex;background:var(--card);border-bottom:1px solid var(--border);padding:0 18px;overflow-x:auto;}
+    .tab-btn{padding:12px 16px;background:none;border:none;color:var(--muted);font-size:0.86rem;
+      cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit;white-space:nowrap;}
+    .tab-btn:hover{color:var(--text);}
+    .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+    .tab-panel{display:none;}
+    .tab-panel.active{display:block;}
+
+    /* ── Week nav ── */
+    .week-nav{display:flex;align-items:center;justify-content:space-between;
+      padding:13px 22px;background:var(--card);border-bottom:1px solid var(--border);gap:10px;}
+    .wnav-btn{background:var(--card2);border:1px solid var(--border);color:var(--text);
+      border-radius:8px;padding:6px 13px;cursor:pointer;font-size:0.82rem;transition:border-color .2s;}
+    .wnav-btn:hover{border-color:var(--accent);}
+    .wnav-center{text-align:center;}
+    .wnav-center h3{font-size:0.93rem;font-weight:600;}
+    .back-today{background:none;border:none;color:var(--accent);font-size:0.76rem;cursor:pointer;font-family:inherit;margin-top:2px;}
+
+    /* ── Week grid ── */
+    .week-grid{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;
+      padding:16px 18px;overflow-x:auto;align-items:start;}
+    .day-col{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;}
+    .day-col.today{border-color:var(--accent);}
+    .day-col.today .day-date{color:var(--accent);}
+    .day-col-hd{padding:10px 12px 8px;border-bottom:1px solid var(--border);}
+    .day-name-lbl{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+    .day-date{font-size:1.2rem;font-weight:700;}
+    .day-entry-cnt{font-size:0.68rem;color:var(--muted);margin-top:1px;min-height:13px;}
+    .day-col-body{flex:1;padding:7px;display:flex;flex-direction:column;gap:4px;}
+
+    /* Exercise entries */
+    .ex-entry{background:var(--card2);border:1px solid var(--border);border-radius:8px;
+      padding:6px 9px;cursor:pointer;transition:border-color .2s;position:relative;}
+    .ex-entry:hover{border-color:var(--accent2);}
+    .ex-entry-name{font-size:0.8rem;font-weight:600;padding-right:16px;line-height:1.3;}
+    .ex-entry-detail{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+    .ex-del{position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);
+      cursor:pointer;font-size:0.7rem;padding:2px 3px;border-radius:3px;line-height:1;}
+    .ex-del:hover{color:var(--red);background:rgba(239,68,68,.1);}
+    .add-entry-btn{background:none;border:1px dashed var(--border);border-radius:7px;padding:6px;
+      color:var(--muted);font-size:0.76rem;cursor:pointer;text-align:center;transition:all .2s;font-family:inherit;}
+    .add-entry-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+    /* Hydration section */
+    .hydration-sec{border-top:1px solid var(--border);padding:7px 8px 6px;margin-top:2px;}
+    .water-row{display:flex;align-items:center;gap:4px;margin-bottom:5px;}
+    .water-emoji{font-size:0.9rem;}
+    .hyd-btn{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);
+      background:var(--card2);color:var(--text);cursor:pointer;font-size:0.78rem;
+      display:flex;align-items:center;justify-content:center;transition:all .2s;line-height:1;}
+    .hyd-btn:hover{border-color:var(--blue);color:var(--blue);}
+    .water-num{font-size:0.88rem;font-weight:700;min-width:14px;text-align:center;color:var(--blue);}
+    .water-lbl{font-size:0.7rem;color:var(--muted);}
+    .water-dots{display:flex;gap:2px;flex-wrap:wrap;margin-left:2px;}
+    .water-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background .2s;}
+    .water-dot.filled{background:var(--blue);}
+    .bubble-row{display:flex;align-items:center;gap:5px;}
+    .bubble-toggle{background:var(--card2);border:1px solid var(--border);border-radius:20px;
+      padding:3px 9px;font-size:0.72rem;cursor:pointer;font-family:inherit;color:var(--muted);
+      transition:all .2s;}
+    .bubble-toggle.drank{background:#2a1f0e;border-color:var(--accent);color:var(--accent);}
+    .bubble-toggle.nodrank{background:#0d2318;border-color:var(--green);color:var(--green);}
+
+    /* ── Modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;
+      align-items:center;justify-content:center;z-index:200;padding:20px;}
+    .modal-overlay.hidden{display:none;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:18px;
+      padding:24px;width:100%;max-width:450px;max-height:90vh;overflow-y:auto;}
+    .modal-title{font-size:1.03rem;font-weight:700;}
+    .modal-sub{font-size:0.78rem;color:var(--muted);margin-top:3px;margin-bottom:16px;}
+    .quick-pick-lbl{font-size:0.73rem;color:var(--muted);font-weight:600;margin-bottom:6px;}
+    .quick-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;max-height:80px;overflow-y:auto;}
+    .qchip{background:var(--card2);border:1px solid var(--border);border-radius:20px;
+      padding:3px 10px;font-size:0.74rem;cursor:pointer;transition:all .2s;}
+    .qchip:hover{border-color:var(--accent);color:var(--accent);}
+    .qchip.sel{background:#2a1f0e;border-color:var(--accent);color:var(--accent);}
+    .frow{margin-bottom:13px;}
+    .frow label,.fgrid label{display:block;font-size:0.74rem;color:var(--muted);font-weight:600;margin-bottom:5px;}
+    .frow input,.frow select,.frow textarea,.fgrid input,.fgrid select{
+      width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);
+      border-radius:8px;padding:9px 11px;font-size:0.86rem;outline:none;font-family:inherit;
+      transition:border-color .2s;}
+    .frow input:focus,.frow select:focus,.frow textarea:focus,.fgrid input:focus,.fgrid select:focus{border-color:var(--accent);}
+    .frow textarea{resize:vertical;min-height:52px;}
+    .fgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:13px;}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+    .btn-primary{background:var(--accent);color:white;border:none;border-radius:8px;padding:9px 18px;
+      font-size:0.84rem;font-weight:600;cursor:pointer;font-family:inherit;}
+    .btn-primary:hover{background:#ea6a05;}
+    .btn-ghost{background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:8px;
+      padding:9px 14px;font-size:0.84rem;cursor:pointer;font-family:inherit;}
+    .btn-ghost:hover{color:var(--text);}
+
+    /* ── PR tab ── */
+    .pr-wrap{padding:22px;}
+    .sec-title{font-size:1.03rem;font-weight:700;}
+    .sec-desc{color:var(--muted);font-size:0.82rem;margin-top:4px;margin-bottom:16px;}
+    .pr-search{background:var(--card2);border:1px solid var(--border);color:var(--text);
+      border-radius:9px;padding:8px 13px;font-size:0.86rem;outline:none;font-family:inherit;
+      width:100%;max-width:260px;margin-bottom:14px;display:block;transition:border-color .2s;}
+    .pr-search:focus{border-color:var(--accent);}
+    .pr-table{width:100%;border-collapse:collapse;}
+    .pr-table th{text-align:left;font-size:0.68rem;color:var(--muted);text-transform:uppercase;
+      letter-spacing:.5px;padding:8px 13px;border-bottom:1px solid var(--border);}
+    .pr-table td{padding:10px 13px;border-bottom:1px solid var(--border);font-size:0.84rem;}
+    .pr-table tr:hover td{background:var(--card2);}
+    .pr-weight{font-weight:700;color:var(--accent);}
+    .pr-empty{text-align:center;padding:44px 20px;color:var(--muted);line-height:1.9;}
+
+    /* ── Preset tab ── */
+    .preset-wrap{padding:22px;max-width:800px;}
+    .preset-cat{background:var(--card);border:1px solid var(--border);border-radius:13px;margin-bottom:11px;overflow:hidden;}
+    .preset-cat-hd{display:flex;align-items:center;gap:9px;padding:12px 15px;cursor:pointer;transition:background .15s;}
+    .preset-cat-hd:hover{background:var(--card2);}
+    .cat-icon{font-size:1.1rem;} .cat-name{font-weight:600;flex:1;font-size:0.9rem;}
+    .cat-count{font-size:0.73rem;color:var(--muted);}
+    .cat-arr{color:var(--muted);font-size:0.78rem;transition:transform .2s;}
+    .cat-arr.open{transform:rotate(90deg);}
+    .preset-cat-body{padding:0 15px 13px;display:none;}
+    .preset-cat-body.open{display:block;}
+    .preset-chips-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;}
+    .preset-item{background:var(--card2);border:1px solid var(--border);border-radius:8px;
+      padding:5px 9px;font-size:0.78rem;display:flex;align-items:center;gap:5px;}
+    .p-to-today{background:none;border:none;color:var(--accent);font-size:0.73rem;cursor:pointer;
+      font-family:inherit;padding:1px 4px;border-radius:3px;}
+    .p-to-today:hover{background:rgba(249,115,22,.1);}
+    .p-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.7rem;
+      padding:1px 3px;border-radius:3px;font-family:inherit;}
+    .p-del:hover{color:var(--red);}
+    .preset-add-row{display:flex;gap:7px;align-items:center;}
+    .preset-add-inp{flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);
+      border-radius:7px;padding:7px 10px;font-size:0.82rem;outline:none;font-family:inherit;transition:border-color .2s;}
+    .preset-add-inp:focus{border-color:var(--accent);}
+    .preset-add-btn{background:var(--accent);color:white;border:none;border-radius:7px;padding:7px 12px;
+      font-size:0.8rem;cursor:pointer;font-family:inherit;}
+    .preset-add-btn:hover{background:#ea6a05;}
+    .new-cat-btn{background:var(--card);border:1px dashed var(--border);color:var(--muted);border-radius:11px;
+      padding:12px;width:100%;text-align:center;font-size:0.84rem;cursor:pointer;font-family:inherit;transition:all .2s;}
+    .new-cat-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+    /* ── Profile tab ── */
+    .profile-wrap{padding:22px;max-width:900px;}
+    .profile-grid{display:grid;grid-template-columns:280px 1fr;gap:20px;}
+    @media(max-width:720px){.profile-grid{grid-template-columns:1fr;}}
+
+    .psec{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;}
+    .psec-title{font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;
+      letter-spacing:.6px;margin-bottom:14px;}
+
+    /* Dog avatar display */
+    .dog-display{display:flex;flex-direction:column;align-items:center;padding:10px 0 6px;}
+    .dog-display svg{width:110px;height:110px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));}
+    .dog-display-label{font-size:.75rem;color:var(--muted);margin-top:8px;letter-spacing:.5px;}
+
+    /* Stats inputs */
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+    .stat-inp-grp label{display:block;font-size:0.73rem;color:var(--muted);font-weight:600;margin-bottom:5px;}
+    .stat-inp-grp input{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);
+      border-radius:8px;padding:9px 11px;font-size:0.88rem;outline:none;font-family:inherit;transition:border-color .2s;}
+    .stat-inp-grp input:focus{border-color:var(--accent);}
+    .stat-inp-grp .unit{font-size:0.72rem;color:var(--muted);margin-top:3px;}
+
+    /* BMI card */
+    .bmi-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;
+      padding:14px 16px;margin-bottom:14px;}
+    .bmi-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+    .bmi-val{font-size:2rem;font-weight:800;line-height:1;}
+    .bmi-right{display:flex;flex-direction:column;}
+    .bmi-tag{font-size:0.88rem;font-weight:600;}
+    .bmi-hint{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+
+    /* BMI gauge */
+    .bmi-gauge-outer{position:relative;margin-bottom:6px;}
+    .bmi-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;}
+    .bmi-bar div{flex:1;}
+    .bmi-track{position:relative;height:10px;}
+    .bmi-needle{position:absolute;top:-4px;width:4px;height:18px;background:white;border-radius:2px;
+      transform:translateX(-50%);transition:left .4s;box-shadow:0 0 4px rgba(0,0,0,.5);}
+    .bmi-scale{display:flex;justify-content:space-between;font-size:0.62rem;color:var(--muted);margin-top:3px;}
+
+    /* Goal progress */
+    .goal-card{background:var(--card2);border:1px solid var(--border);border-radius:11px;
+      padding:13px 15px;margin-bottom:10px;}
+    .goal-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+    .goal-icon-big{font-size:1.2rem;}
+    .goal-label-txt{font-weight:600;font-size:0.88rem;}
+    .goal-vals-row{display:flex;align-items:center;gap:8px;font-size:0.82rem;margin-bottom:8px;}
+    .goal-cur{font-weight:700;font-size:1.1rem;}
+    .goal-arrow{color:var(--muted);}
+    .goal-tgt{color:var(--accent);font-weight:700;font-size:1.1rem;}
+    .goal-diff{font-size:0.78rem;color:var(--muted);margin-bottom:8px;}
+    .goal-diff.done{color:var(--green);}
+    .goal-bar-wrap{background:var(--border);border-radius:4px;height:8px;overflow:hidden;}
+    .goal-bar-fill{height:100%;border-radius:4px;transition:width .6s;}
+    .goal-pct{font-size:0.7rem;color:var(--muted);margin-top:4px;text-align:right;}
+    .goal-empty-msg{font-size:0.78rem;color:var(--muted);text-align:center;padding:10px 0;}
+
+    /* Profile save btn */
+    .profile-save-btn{background:var(--accent);color:white;border:none;border-radius:9px;
+      padding:10px 22px;font-size:0.86rem;font-weight:600;cursor:pointer;font-family:inherit;
+      width:100%;margin-top:4px;}
+    .profile-save-btn:hover{background:#ea6a05;}
+
+
+    ::-webkit-scrollbar{width:6px;height:6px;}
+    ::-webkit-scrollbar-track{background:var(--bg);}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+    @media(max-width:700px){.week-grid{grid-template-columns:repeat(7,155px);}}
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo" id="headerLogo" onclick="switchTab('profile')" title="個人檔案"></span>
+  <h1>Amber的<span>變健康日記</span></h1>
+</header>
+
+<div class="tab-nav">
+  <button class="tab-btn active" id="tabBtn-calendar" onclick="switchTab('calendar')">📅 週曆</button>
+  <button class="tab-btn" id="tabBtn-pr"      onclick="switchTab('pr')">🏆 最高紀錄</button>
+  <button class="tab-btn" id="tabBtn-preset"  onclick="switchTab('preset')">📋 預設模組</button>
+  <button class="tab-btn" id="tabBtn-profile" onclick="switchTab('profile')">👤 個人檔案</button>
+</div>
+
+<!-- ══════ 週曆 ══════ -->
+<div class="tab-panel active" id="tab-calendar">
+  <div class="week-nav">
+    <button class="wnav-btn" onclick="prevWeek()">← 上週</button>
+    <div class="wnav-center">
+      <h3 id="weekLabel">—</h3>
+      <button class="back-today" onclick="goToday()">回本週</button>
+    </div>
+    <button class="wnav-btn" onclick="nextWeek()">下週 →</button>
+  </div>
+  <div class="week-grid" id="weekGrid"></div>
+</div>
+
+<!-- ══════ 最高紀錄 ══════ -->
+<div class="tab-panel" id="tab-pr">
+  <div class="pr-wrap">
+    <div class="sec-title">🏆 最高重量紀錄</div>
+    <div class="sec-desc">自動統計每個動作的歷史最高重量，方便下次設定目標。</div>
+    <input class="pr-search" id="prSearch" placeholder="搜尋動作名稱…" oninput="renderPR()"/>
+    <div id="prContent"></div>
+  </div>
+</div>
+
+<!-- ══════ 預設模組 ══════ -->
+<div class="tab-panel" id="tab-preset">
+  <div class="preset-wrap">
+    <div class="sec-title">📋 預設模組</div>
+    <div class="sec-desc">管理常用動作，點「+ 今天」快速加入當日記錄；可自由新增、刪除、建立分類。</div>
+    <div id="presetList"></div>
+    <button class="new-cat-btn" onclick="addCategory()">＋ 新增分類</button>
+  </div>
+</div>
+
+<!-- ══════ 個人檔案 ══════ -->
+<div class="tab-panel" id="tab-profile">
+  <div class="profile-wrap">
+    <div class="sec-title" style="margin-bottom:16px;">👤 個人檔案</div>
+    <div class="profile-grid">
+
+      <!-- Left col -->
+      <div>
+        <div class="psec">
+          <div class="psec-title">我的夥伴 🐾</div>
+          <div class="dog-display" id="dogAvatarBig"></div>
+          <div class="dog-display-label" style="text-align:center;margin-top:2px;">白色狐狸犬</div>
+        </div>
+        <button class="profile-save-btn" onclick="saveProfile()">💾 儲存個人資料</button>
+      </div>
+
+      <!-- Right col -->
+      <div>
+        <!-- Body stats -->
+        <div class="psec">
+          <div class="psec-title">📊 身體數據</div>
+          <div class="stats-grid">
+            <div class="stat-inp-grp">
+              <label>身高</label>
+              <input type="number" id="pfHeight" placeholder="165" min="100" max="250"/>
+              <div class="unit">cm</div>
+            </div>
+            <div class="stat-inp-grp">
+              <label>體重</label>
+              <input type="number" id="pfWeight" placeholder="55.0" step="0.1" min="20" max="300"/>
+              <div class="unit">kg</div>
+            </div>
+            <div class="stat-inp-grp">
+              <label>體脂率</label>
+              <input type="number" id="pfBodyFat" placeholder="25.0" step="0.1" min="3" max="60"/>
+              <div class="unit">%</div>
+            </div>
+            <div class="stat-inp-grp" style="display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--card2);border-radius:8px;border:1px solid var(--border);padding:9px 11px;">
+              <div style="font-size:.7rem;color:var(--muted);font-weight:600;margin-bottom:4px;">BMI</div>
+              <div style="font-size:1.4rem;font-weight:800;" id="bmiValInCard">—</div>
+            </div>
+          </div>
+
+          <!-- BMI gauge -->
+          <div class="bmi-card">
+            <div class="bmi-top">
+              <div>
+                <div style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:3px;">BMI 指數</div>
+                <div style="display:flex;align-items:baseline;gap:6px;">
+                  <span class="bmi-val" id="bmiValue">—</span>
+                  <span class="bmi-tag" id="bmiTag" style="color:var(--muted)">請填入身高與體重</span>
+                </div>
+              </div>
+            </div>
+            <div class="bmi-gauge-outer">
+              <div class="bmi-track">
+                <div class="bmi-bar">
+                  <div style="flex:3.5;background:#60a5fa;border-radius:5px 0 0 5px;"></div>
+                  <div style="flex:5.5;background:#22c55e;"></div>
+                  <div style="flex:3;background:#eab308;"></div>
+                  <div style="flex:3;background:#f97316;"></div>
+                  <div style="flex:5;background:#ef4444;border-radius:0 5px 5px 0;"></div>
+                </div>
+                <div style="position:relative;height:0;">
+                  <div class="bmi-needle" id="bmiNeedle" style="left:50%"></div>
+                </div>
+              </div>
+              <div class="bmi-scale">
+                <span>15</span><span>18.5</span><span>24</span><span>27</span><span>30</span><span>35+</span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:.68rem;color:var(--muted);">
+              <span style="color:#60a5fa;">過輕</span>
+              <span style="color:#22c55e;">正常</span>
+              <span style="color:#eab308;">過重</span>
+              <span style="color:#f97316;">輕胖</span>
+              <span style="color:#ef4444;">中胖</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Goals -->
+        <div class="psec">
+          <div class="psec-title">🎯 目標設定與進度</div>
+          <div class="stats-grid" style="margin-bottom:16px;">
+            <div class="stat-inp-grp">
+              <label>目標體重 (kg)</label>
+              <input type="number" id="pfTargetWeight" placeholder="50.0" step="0.1"/>
+            </div>
+            <div class="stat-inp-grp">
+              <label>目標體脂率 (%)</label>
+              <input type="number" id="pfTargetBodyFat" placeholder="20.0" step="0.1"/>
+            </div>
+          </div>
+          <div id="weightProgress"></div>
+          <div id="bodyFatProgress"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ Modal ══════ -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">新增運動</div>
+    <div class="modal-sub"   id="modalSub">—</div>
+    <div class="quick-pick-lbl">從預設或最近使用快速選擇</div>
+    <div class="quick-chips" id="quickChips"></div>
+    <div class="frow">
+      <label>動作名稱 / 器材名稱 *</label>
+      <input type="text" id="fName" placeholder="例如：臥推、跑步機、啞鈴彎舉…" list="nameList"/>
+      <datalist id="nameList"></datalist>
+    </div>
+    <div class="fgrid">
+      <div><label>重量</label><input type="number" id="fWeight" placeholder="0" min="0" step="0.5"/></div>
+      <div><label>單位</label>
+        <select id="fUnit">
+          <option value="kg">kg</option>
+          <option value="lbs">lbs</option>
+          <option value="自體重">自體重</option>
+        </select>
+      </div>
+      <div><label>組數</label><input type="number" id="fSets" placeholder="3" min="1"/></div>
+    </div>
+    <div class="frow">
+      <label>次數 / 時間（每組）</label>
+      <input type="text" id="fReps" placeholder="例如：10、12-15、60秒…"/>
+    </div>
+    <div class="frow">
+      <label>備註</label>
+      <textarea id="fNote" placeholder="感受、調整、PR 備忘…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="saveEntry()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const DEFAULTS = [
+  { id:'upper', name:'上肢', icon:'💪', exercises:[
+    '臥推','上斜臥推','啞鈴飛鳥','繩索夾胸','肩推','側平舉','前平舉','臉拉',
+    '滑輪下拉','坐姿划船','單臂啞鈴划船','二頭彎舉','錘式彎舉','三頭下壓','法式彎舉']},
+  { id:'lower', name:'下肢', icon:'🦵', exercises:[
+    '槓鈴深蹲','腿推機','保加利亞分腿蹲','側蹲','羅馬尼亞硬舉',
+    '腿彎舉','腿伸展','臀推','腿外展機','腿內收機','小腿上提']},
+  { id:'core',  name:'核心', icon:'🔥', exercises:[
+    '棒式','側棒式','棒式爬行','登山者式','捲腹','仰臥起坐',
+    '俄羅斯轉體','懸吊抬腿','死蟲','鳥狗式']},
+  { id:'cardio',name:'有氧', icon:'🏃', exercises:[
+    '跑步機','橢圓機','腳踏車機','划船機','跳繩','HIIT','波比跳','戰繩','跳箱','爬樓梯機']},
+  { id:'yoga',  name:'瑜伽', icon:'🧘', exercises:[
+    '拜日式','戰士一式','戰士二式','下犬式','三角式','船式','橋式','鴿式','脊椎扭轉','攤屍式']}
+];
+
+const DOG_SVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="99" fill="#1e2235"/>
+  <ellipse cx="100" cy="192" rx="72" ry="26" fill="white"/>
+  <ellipse cx="100" cy="182" rx="65" ry="24" fill="white"/>
+  <circle cx="14" cy="120" r="36" fill="white"/>
+  <circle cx="20" cy="94" r="28" fill="white"/>
+  <circle cx="26" cy="150" r="26" fill="white"/>
+  <circle cx="186" cy="120" r="36" fill="white"/>
+  <circle cx="180" cy="94" r="28" fill="white"/>
+  <circle cx="174" cy="150" r="26" fill="white"/>
+  <circle cx="100" cy="44" r="30" fill="white"/>
+  <circle cx="72" cy="57" r="20" fill="white"/>
+  <circle cx="128" cy="57" r="20" fill="white"/>
+  <polygon points="38,76 51,8 91,64" fill="white"/>
+  <polygon points="48,72 57,16 86,62" fill="#ffafc0"/>
+  <polygon points="162,76 149,8 109,64" fill="white"/>
+  <polygon points="152,72 143,16 114,62" fill="#ffafc0"/>
+  <circle cx="100" cy="114" r="72" fill="white"/>
+  <ellipse cx="100" cy="140" rx="37" ry="28" fill="#f5f5f5"/>
+  <circle cx="74" cy="113" r="16" fill="#060606"/>
+  <circle cx="126" cy="113" r="16" fill="#060606"/>
+  <circle cx="80" cy="107" r="6" fill="white"/>
+  <circle cx="132" cy="107" r="6" fill="white"/>
+  <circle cx="81" cy="116" r="2.8" fill="white" opacity="0.42"/>
+  <circle cx="133" cy="116" r="2.8" fill="white" opacity="0.42"/>
+  <ellipse cx="100" cy="131" rx="11" ry="8.5" fill="#111"/>
+  <ellipse cx="96" cy="128" rx="3.5" ry="2.5" fill="#2a2a2a" opacity="0.65"/>
+  <line x1="100" y1="139.5" x2="100" y2="144" stroke="#0d0d0d" stroke-width="3" stroke-linecap="round"/>
+  <path d="M79,144 Q100,160 121,144" fill="#0d0d0d"/>
+  <rect x="85" y="143" width="11" height="7" rx="2.5" fill="white"/>
+  <rect x="104" y="143" width="11" height="7" rx="2.5" fill="white"/>
+  <ellipse cx="100" cy="156" rx="15" ry="11" fill="#e8455a"/>
+  <line x1="100" y1="145" x2="100" y2="167" stroke="#c03050" stroke-width="3" stroke-linecap="round"/>
+</svg>`;
+
+// ── State ──────────────────────────────────────────────────────────────────
+let workouts = {};
+let presets  = [];
+let daily    = {};  // "YYYY-MM-DD": { water:0, bubbleTea:false }
+let profile  = { avatar:'🐰', nickname:'', height:null, weight:null, bodyFat:null,
+                 targetWeight:null, targetBodyFat:null, initWeight:null, initBodyFat:null };
+
+let weekStart  = getMonday(new Date());
+let modalDate  = null;
+let modalExId  = null;
+const TODAY    = toDS(new Date());
+
+// ── Storage ────────────────────────────────────────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem('amberGym2');
+    if (raw) {
+      const d = JSON.parse(raw);
+      workouts = d.workouts || {};
+      presets  = d.presets  || clone(DEFAULTS);
+      daily    = d.daily    || {};
+      profile  = Object.assign({ avatar:'🐰', nickname:'', height:null, weight:null,
+        bodyFat:null, targetWeight:null, targetBodyFat:null, initWeight:null, initBodyFat:null },
+        d.profile || {});
+    } else {
+      presets = clone(DEFAULTS);
+    }
+  } catch { presets = clone(DEFAULTS); }
+}
+function persist() { localStorage.setItem('amberGym2', JSON.stringify({ workouts, presets, daily, profile })); }
+function clone(x)  { return JSON.parse(JSON.stringify(x)); }
+
+// ── Date helpers ───────────────────────────────────────────────────────────
+function getMonday(d) {
+  const c = new Date(d); c.setHours(0,0,0,0);
+  const day = c.getDay();
+  c.setDate(c.getDate() - (day === 0 ? 6 : day - 1));
+  return c;
+}
+function toDS(d) { return d.toISOString().split('T')[0]; }
+function addDays(d,n) { const c=new Date(d); c.setDate(c.getDate()+n); return c; }
+function fmt(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
+function fullLabel(ds) {
+  const d=new Date(ds+'T00:00:00');
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（週${'日一二三四五六'[d.getDay()]}）`;
+}
+const WDAYS = ['週一','週二','週三','週四','週五','週六','週日'];
+
+// ── Tab ────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('tabBtn-'+name).classList.add('active');
+  if (name==='pr')      renderPR();
+  if (name==='preset')  renderPresets();
+  if (name==='profile') renderProfile();
+}
+
+// ── Week ───────────────────────────────────────────────────────────────────
+function prevWeek() { weekStart=addDays(weekStart,-7); renderWeek(); }
+function nextWeek() { weekStart=addDays(weekStart, 7); renderWeek(); }
+function goToday()  { weekStart=getMonday(new Date()); renderWeek(); }
+
+function renderWeek() {
+  const end = addDays(weekStart,6);
+  document.getElementById('weekLabel').textContent =
+    `${weekStart.getFullYear()}年 ${fmt(weekStart)} – ${fmt(end)}`;
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+  for (let i=0;i<7;i++) {
+    const d  = addDays(weekStart,i);
+    const ds = toDS(d);
+    const arr= workouts[ds] || [];
+    const dy = daily[ds]    || { water:0, bubbleTea:false };
+    const isT= ds===TODAY;
+    const col= document.createElement('div');
+    col.className = 'day-col'+(isT?' today':'');
+    const entries = arr.map(e=>entryHtml(e,ds)).join('');
+    // Water dots (max 8 shown)
+    const dots = Array.from({length:8},(_,i)=>
+      `<div class="water-dot${i<dy.water?' filled':''}"></div>`).join('');
+    const bubCls = dy.bubbleTea===null||dy.bubbleTea===undefined ? '' :
+                   dy.bubbleTea ? 'drank' : 'nodrank';
+    const bubTxt = dy.bubbleTea===null||dy.bubbleTea===undefined ? '🧋 手搖飲？' :
+                   dy.bubbleTea ? '🧋 喝了' : '✨ 沒喝';
+
+    col.innerHTML = `
+      <div class="day-col-hd">
+        <div class="day-name-lbl">${WDAYS[i]}</div>
+        <div class="day-date">${d.getDate()}</div>
+        <div class="day-entry-cnt">${arr.length?arr.length+' 項':isT?'今天':''}</div>
+      </div>
+      <div class="day-col-body">
+        ${entries}
+        <button class="add-entry-btn" onclick="openAddModal('${ds}')">＋ 新增運動</button>
+      </div>
+      <div class="hydration-sec">
+        <div class="water-row">
+          <span class="water-emoji">💧</span>
+          <button class="hyd-btn" onclick="adjWater('${ds}',-1)">−</button>
+          <span class="water-num">${dy.water||0}</span>
+          <span class="water-lbl">杯</span>
+          <button class="hyd-btn" onclick="adjWater('${ds}',1)">+</button>
+          <div class="water-dots">${dots}</div>
+        </div>
+        <div class="bubble-row">
+          <button class="bubble-toggle ${bubCls}" onclick="togBubble('${ds}')">${bubTxt}</button>
+        </div>
+      </div>`;
+    grid.appendChild(col);
+  }
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function entryHtml(e,ds) {
+  const w  = e.weight ? `${e.weight}${e.unit}` : (e.unit==='自體重'?'自體重':'');
+  const det= [e.sets?e.sets+'組':'', e.reps||'', w].filter(Boolean).join(' × ');
+  return `<div class="ex-entry" onclick="openEditModal('${ds}','${e.id}')">
+    <div class="ex-entry-name">${esc(e.name)}</div>
+    ${det?`<div class="ex-entry-detail">${esc(det)}</div>`:''}
+    <button class="ex-del" onclick="delEntry(event,'${ds}','${e.id}')">✕</button>
+  </div>`;
+}
+
+// ── Hydration ──────────────────────────────────────────────────────────────
+function adjWater(ds,delta) {
+  if (!daily[ds]) daily[ds]={water:0,bubbleTea:null};
+  daily[ds].water = Math.max(0,(daily[ds].water||0)+delta);
+  persist(); renderWeek();
+}
+function togBubble(ds) {
+  if (!daily[ds]) daily[ds]={water:0,bubbleTea:null};
+  // Cycle: null → true → false → true ...
+  if (daily[ds].bubbleTea===null||daily[ds].bubbleTea===undefined) daily[ds].bubbleTea=true;
+  else daily[ds].bubbleTea = !daily[ds].bubbleTea;
+  persist(); renderWeek();
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────
+function openAddModal(ds) {
+  modalDate=ds; modalExId=null;
+  document.getElementById('modalTitle').textContent='新增運動';
+  document.getElementById('modalSub').textContent=fullLabel(ds);
+  clearForm(); fillChips(''); fillDL();
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('fName').focus(),80);
+}
+function openEditModal(ds,exId) {
+  const e=(workouts[ds]||[]).find(x=>x.id===exId); if(!e) return;
+  modalDate=ds; modalExId=exId;
+  document.getElementById('modalTitle').textContent='編輯運動';
+  document.getElementById('modalSub').textContent='編輯・'+fullLabel(ds);
+  document.getElementById('fName').value  =e.name||'';
+  document.getElementById('fWeight').value=e.weight!=null?e.weight:'';
+  document.getElementById('fUnit').value  =e.unit||'kg';
+  document.getElementById('fSets').value  =e.sets!=null?e.sets:'';
+  document.getElementById('fReps').value  =e.reps||'';
+  document.getElementById('fNote').value  =e.note||'';
+  fillChips(e.name); fillDL();
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); modalDate=null; modalExId=null; }
+function overlayClick(ev) { if(ev.target.id==='modalOverlay') closeModal(); }
+function clearForm() { ['fName','fWeight','fSets','fReps','fNote'].forEach(id=>document.getElementById(id).value=''); document.getElementById('fUnit').value='kg'; }
+
+function fillDL() {
+  const names=new Set();
+  presets.forEach(c=>c.exercises.forEach(n=>names.add(n)));
+  Object.values(workouts).forEach(a=>a.forEach(e=>names.add(e.name)));
+  document.getElementById('nameList').innerHTML=[...names].map(n=>`<option value="${esc(n)}">`).join('');
+}
+function fillChips(sel) {
+  const recent=[];
+  Object.values(workouts).slice(-30).forEach(a=>a.forEach(e=>{ if(!recent.includes(e.name)) recent.push(e.name); }));
+  const pnames=[]; presets.forEach(c=>c.exercises.forEach(n=>{ if(!pnames.includes(n)) pnames.push(n); }));
+  const all=[...new Set([...recent.slice(-6).reverse(),...pnames])].slice(0,22);
+  document.getElementById('quickChips').innerHTML=all.map(n=>
+    `<div class="qchip${n===sel?' sel':''}" onclick="pickChip('${n.replace(/'/g,"\\'")}',this)">${esc(n)}</div>`).join('');
+}
+function pickChip(name,el) {
+  document.querySelectorAll('.qchip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); document.getElementById('fName').value=name;
+}
+function saveEntry() {
+  const name=document.getElementById('fName').value.trim();
+  if (!name) { const i=document.getElementById('fName'); i.style.borderColor='var(--red)'; i.focus(); setTimeout(()=>i.style.borderColor='',2000); return; }
+  const entry={
+    id:modalExId||'e'+Date.now(), name,
+    weight:parseFloat(document.getElementById('fWeight').value)||null,
+    unit:document.getElementById('fUnit').value,
+    sets:parseInt(document.getElementById('fSets').value)||null,
+    reps:document.getElementById('fReps').value.trim()||null,
+    note:document.getElementById('fNote').value.trim()||null
+  };
+  if (!workouts[modalDate]) workouts[modalDate]=[];
+  if (modalExId) { const idx=workouts[modalDate].findIndex(e=>e.id===modalExId); idx!==-1?workouts[modalDate][idx]=entry:workouts[modalDate].push(entry); }
+  else workouts[modalDate].push(entry);
+  persist(); closeModal(); renderWeek();
+}
+function delEntry(ev,ds,exId) {
+  ev.stopPropagation();
+  workouts[ds]=(workouts[ds]||[]).filter(e=>e.id!==exId);
+  if (!workouts[ds].length) delete workouts[ds];
+  persist(); renderWeek();
+}
+
+// ── PR ─────────────────────────────────────────────────────────────────────
+function renderPR() {
+  const q=(document.getElementById('prSearch').value||'').toLowerCase();
+  const map={};
+  Object.entries(workouts).forEach(([ds,arr])=>arr.forEach(e=>{
+    if (!e.weight) return;
+    if (!map[e.name]||e.weight>map[e.name].weight) map[e.name]={weight:e.weight,unit:e.unit||'kg',date:ds,sets:e.sets,reps:e.reps};
+  }));
+  const keys=Object.keys(map).filter(k=>k.toLowerCase().includes(q)).sort();
+  const el=document.getElementById('prContent');
+  if (!keys.length) { el.innerHTML=`<div class="pr-empty">尚無重量紀錄<br><small>在週曆新增含重量的運動後會自動出現</small></div>`; return; }
+  el.innerHTML=`<table class="pr-table"><thead><tr><th>動作名稱</th><th>最高重量</th><th>組數 × 次數</th><th>達成日期</th></tr></thead><tbody>
+    ${keys.map(k=>{
+      const p=map[k], det=[p.sets?p.sets+'組':'',p.reps||''].filter(Boolean).join(' × '), d=new Date(p.date+'T00:00:00');
+      return `<tr><td>${esc(k)}</td><td class="pr-weight">${p.weight} ${esc(p.unit)}</td><td style="color:var(--muted)">${det||'—'}</td><td style="color:var(--muted)">${d.getMonth()+1}/${d.getDate()}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+// ── Presets ────────────────────────────────────────────────────────────────
+function renderPresets() {
+  document.getElementById('presetList').innerHTML=presets.map((cat,ci)=>`
+    <div class="preset-cat">
+      <div class="preset-cat-hd" onclick="togCat(${ci})">
+        <span class="cat-icon">${cat.icon}</span><span class="cat-name">${esc(cat.name)}</span>
+        <span class="cat-count">${cat.exercises.length} 項</span><span class="cat-arr" id="arr${ci}">▶</span>
+      </div>
+      <div class="preset-cat-body" id="cb${ci}">
+        <div class="preset-chips-list">
+          ${cat.exercises.map((ex,ei)=>`
+            <div class="preset-item"><span>${esc(ex)}</span>
+              <button class="p-to-today" onclick="pToday('${ex.replace(/'/g,"\\'")}')">+ 今天</button>
+              <button class="p-del" onclick="delPEx(${ci},${ei})">✕</button>
+            </div>`).join('')}
+        </div>
+        <div class="preset-add-row">
+          <input class="preset-add-inp" id="pi${ci}" placeholder="新增動作名稱…" onkeydown="if(event.key==='Enter')addPEx(${ci})"/>
+          <button class="preset-add-btn" onclick="addPEx(${ci})">新增</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function togCat(ci) { document.getElementById('cb'+ci).classList.toggle('open'); document.getElementById('arr'+ci).classList.toggle('open'); }
+function addPEx(ci) {
+  const inp=document.getElementById('pi'+ci); const val=inp.value.trim();
+  if (!val||presets[ci].exercises.includes(val)) { inp.value=''; return; }
+  presets[ci].exercises.push(val); inp.value=''; persist(); renderPresets();
+  document.getElementById('cb'+ci).classList.add('open'); document.getElementById('arr'+ci).classList.add('open');
+}
+function delPEx(ci,ei) {
+  presets[ci].exercises.splice(ei,1); persist(); renderPresets();
+  document.getElementById('cb'+ci).classList.add('open'); document.getElementById('arr'+ci).classList.add('open');
+}
+function pToday(name) {
+  switchTab('calendar'); weekStart=getMonday(new Date()); renderWeek();
+  openAddModal(TODAY); document.getElementById('fName').value=name; fillChips(name);
+}
+function addCategory() {
+  const name=prompt('新分類名稱：'); if (!name?.trim()) return;
+  const icon=prompt('輸入 Emoji 圖示（例如 🏊）：')||'📌';
+  presets.push({id:'c'+Date.now(),name:name.trim(),icon,exercises:[]}); persist(); renderPresets();
+}
+
+// ── Profile ────────────────────────────────────────────────────────────────
+function setDogIcon(size) {
+  // Returns DOG_SVG with explicit size attribute
+  return DOG_SVG.replace('<svg ', `<svg width="${size}" height="${size}" `);
+}
+function renderProfile() {
+  const bigEl = document.getElementById('dogAvatarBig');
+  if (bigEl) bigEl.innerHTML = DOG_SVG;
+  document.getElementById('headerLogo').innerHTML = setDogIcon(34);
+  setVal('pfHeight',       profile.height);
+  setVal('pfWeight',       profile.weight);
+  setVal('pfBodyFat',      profile.bodyFat);
+  setVal('pfTargetWeight', profile.targetWeight);
+  setVal('pfTargetBodyFat',profile.targetBodyFat);
+  updateBMI();
+  updateGoalProgress();
+}
+function setVal(id,val) { const el=document.getElementById(id); if(el) el.value=val??''; }
+
+function saveProfile() {
+  const newTW = parseFloat(document.getElementById('pfTargetWeight')?.value)||null;
+  const newTF = parseFloat(document.getElementById('pfTargetBodyFat')?.value)||null;
+  // Auto-set init on first target entry
+  const curW = parseFloat(document.getElementById('pfWeight')?.value)||null;
+  const curF = parseFloat(document.getElementById('pfBodyFat')?.value)||null;
+  if (newTW && !profile.targetWeight && curW) profile.initWeight  = curW;
+  if (newTF && !profile.targetBodyFat && curF) profile.initBodyFat = curF;
+  // Reset init if target changes significantly
+  if (newTW && profile.targetWeight && Math.abs(newTW-profile.targetWeight)>0.5) profile.initWeight=curW;
+  if (newTF && profile.targetBodyFat && Math.abs(newTF-profile.targetBodyFat)>0.5) profile.initBodyFat=curF;
+
+  profile.height       = parseFloat(document.getElementById('pfHeight')?.value)||null;
+  profile.weight       = curW;
+  profile.bodyFat      = curF;
+  profile.targetWeight = newTW;
+  profile.targetBodyFat= newTF;
+  persist();
+  updateBMI(); updateGoalProgress();
+  // Flash save button
+  const btn=document.querySelector('.profile-save-btn');
+  const orig=btn.textContent; btn.textContent='✓ 已儲存！'; btn.style.background='var(--green)';
+  setTimeout(()=>{ btn.textContent=orig; btn.style.background=''; },1500);
+}
+
+// ── BMI ────────────────────────────────────────────────────────────────────
+function calcBMI(w,h) { return (w&&h&&h>0) ? +(w/(h/100)**2).toFixed(1) : null; }
+function bmiInfo(bmi) {
+  if (!bmi) return null;
+  if (bmi<18.5) return {label:'體重過輕',color:'#60a5fa'};
+  if (bmi<24)   return {label:'正常範圍 ✓',color:'#22c55e'};
+  if (bmi<27)   return {label:'體重過重',color:'#eab308'};
+  if (bmi<30)   return {label:'輕度肥胖',color:'#f97316'};
+  return              {label:'中度肥胖',color:'#ef4444'};
+}
+function updateBMI() {
+  const bmi  = calcBMI(profile.weight, profile.height);
+  const info = bmiInfo(bmi);
+  const valEl= document.getElementById('bmiValue');
+  const tagEl= document.getElementById('bmiTag');
+  const ndl  = document.getElementById('bmiNeedle');
+  const card = document.getElementById('bmiValInCard');
+  if (!valEl) return;
+  if (!bmi) {
+    valEl.textContent='—'; valEl.style.color='var(--muted)';
+    tagEl.textContent='請填入身高與體重'; tagEl.style.color='var(--muted)';
+    if(ndl) ndl.style.left='50%'; if(card) card.textContent='—';
+    return;
+  }
+  valEl.textContent=bmi; valEl.style.color=info.color;
+  tagEl.textContent=info.label; tagEl.style.color=info.color;
+  if (card) { card.textContent=bmi; card.style.color=info.color; }
+  if (ndl) ndl.style.left=Math.max(2,Math.min(98,(bmi-15)/20*100))+'%';
+}
+
+// ── Goal progress ──────────────────────────────────────────────────────────
+function updateGoalProgress() {
+  renderGoalCard('weightProgress','⚖️','體重目標',profile.weight,profile.targetWeight,profile.initWeight,'kg','var(--accent)');
+  renderGoalCard('bodyFatProgress','🔥','體脂目標',profile.bodyFat,profile.targetBodyFat,profile.initBodyFat,'%','#ec4899');
+}
+
+function renderGoalCard(elId,icon,label,cur,tgt,init,unit,color) {
+  const el=document.getElementById(elId); if(!el) return;
+  if (!cur || !tgt) {
+    el.innerHTML=`<div class="goal-card"><div class="goal-hd"><span class="goal-icon-big">${icon}</span><span class="goal-label-txt">${label}</span></div><div class="goal-empty-msg">填入目前數值與目標後顯示進度 📊</div></div>`;
+    return;
+  }
+  const diff    = +(cur-tgt).toFixed(1);
+  const diffAbs = Math.abs(diff);
+  const done    = diffAbs===0;
+  const losing  = tgt<cur;
+  const dir     = losing ? (unit==='kg'?'減少':'降低') : (unit==='kg'?'增加':'提高');
+
+  let pct=0;
+  if (init && !done) {
+    const totalGap=Math.abs(init-tgt);
+    const remaining=Math.abs(cur-tgt);
+    pct=totalGap>0 ? Math.max(0,Math.min(100,Math.round((1-remaining/totalGap)*100))) : 0;
+  }
+  if (done) pct=100;
+
+  el.innerHTML=`
+    <div class="goal-card">
+      <div class="goal-hd">
+        <span class="goal-icon-big">${icon}</span>
+        <span class="goal-label-txt">${label}</span>
+        ${done?'<span style="color:var(--green);font-size:.78rem;margin-left:auto;">🎉 達成！</span>':''}
+      </div>
+      <div class="goal-vals-row">
+        <span class="goal-cur">${cur}${unit}</span>
+        <span class="goal-arrow">→</span>
+        <span class="goal-tgt">${tgt}${unit}</span>
+      </div>
+      <div class="goal-diff${done?' done':''}">${done?'🎉 目標達成！好棒棒！':
+        (init?`距離目標還需${dir} <b>${diffAbs}${unit}</b>`:`目標差距 ${diffAbs}${unit}`)}</div>
+      ${init||done ? `
+      <div class="goal-bar-wrap">
+        <div class="goal-bar-fill" style="width:${pct}%;background:${color};"></div>
+      </div>
+      <div class="goal-pct">${done?'100%完成 🌟':pct+'% 完成'}</div>` : ''}
+    </div>`;
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+loadData();
+renderWeek();
+document.getElementById('headerLogo').innerHTML = DOG_SVG.replace('<svg ', '<svg width="34" height="34" ');
+</script>
+</body>
+</html>
