@@ -1,4 +1,4 @@
-const CACHE = 'amber-gym-v3';
+const CACHE = 'amber-gym-v4';
 const ASSETS = ['./gym_planner.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
